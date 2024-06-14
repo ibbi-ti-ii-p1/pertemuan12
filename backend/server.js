@@ -1,17 +1,27 @@
 const http = require('http');
 const url = require('url');
 
-const products = [
-    {
-        id: 1, name: 'Shampo', price: 30000
-    },
-    {
-        id: 2, name: 'Sikat Gigi', price: 12000
-    },
-    {
-        id: 3, name: 'Snack', price: 10000
+const sqlite = require("sqlite3").verbose();
+
+const products = [];
+
+const db = new sqlite.Database("./products.sqlite", (err) => {
+    if (err) {
+        console.error("Error opening database " + err.message);
+    } else {
+        db.run(`CREATE TABLE IF NOT EXISTS 
+                products(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    price INTEGER)`, (err) => {
+                if (err) {
+                    console.error("Error creating table " + err.message);
+                }
+                console.log("Table created");
+            });
     }
-];
+});
+
 
 const server = http.createServer((req, res) => {
     const parsedUrl = url.parse(req.url, true);
@@ -23,22 +33,50 @@ const server = http.createServer((req, res) => {
 
     if(parsedUrl.pathname === '/products') {
         if (req.method === 'GET') {
-            res.end(JSON.stringify({
+            db.all("SELECT * FROM products", (err, rows) => {
+                if (err) {
+                    console.error("Error getting products " + err.message);
+                    res.end(JSON.stringify({
+                        "error": err.message
+                    }));
+                } else {
+                    console.log(rows);
+                    res.end(JSON.stringify({
+                        "products": rows
+                    }));
+                }
+            });
+            /* res.end(JSON.stringify({
                 "products": products
-            }));
+            })); */
         } else if (req.method === 'POST') {
             let body = '';
             req.on('data', (chunk) => {
                 body += chunk;
+                // body = body + chunck;
             });
 
             req.on('end', () => {
                 const product = JSON.parse(body);
                 product.id = products.length + 1;
-                products.push(product);
-                res.end(JSON.stringify({
+                // products.push(product);
+                db.run(`INSERT INTO products 
+                        (name, price)
+                        VALUES (?, ?)`, [product.name, product.price], (err) => {
+                    if (err) {
+                        console.error("Error inserting product " + err.message);
+                        res.end(JSON.stringify({
+                            "error": err.message
+                        }));
+                    } else {
+                        res.end(JSON.stringify({
+                            "product": product
+                        }));
+                    }
+                });
+                /* res.end(JSON.stringify({
                     "product": product
-                }));
+                })); */
             });
         } else {
             res.end('Method not allowed');
