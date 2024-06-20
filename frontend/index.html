@@ -25,7 +25,7 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        #app>div {
+        #list>div {
             margin-bottom: 20px;
             padding: 20px;
             background-color: #f9f9f9;
@@ -72,6 +72,8 @@
             <input type="number" name="price" placeholder="Product Price">
             <button type="submit">Add Product</button>
         </form>
+
+        <div id="list"></div>
     </div>
 
     <script>
@@ -81,13 +83,16 @@
         xhttp.onload = function () {
             const response = JSON.parse(xhttp.responseText);
 
-            const app = document.getElementById("app");
+            const app = document.getElementById("list");
 
             response.products.forEach(product => {
                 const div = document.createElement("div");
                 div.innerHTML = `
+                <div>
                     <h1>${product.name}</h1>
                     <p>Rp ${product.price.toLocaleString()}</p>
+                </div>
+                <button id="btnDelete" data-id="${product.id}" style="margin-top: 1rem; background-color: red;">Delete</button>
                 `;
                 app.appendChild(div);
             });
@@ -114,19 +119,62 @@
             xhttp.onload = function () {
                 const response = JSON.parse(xhttp.responseText);
 
-                const app = document.getElementById("app");
+                const list = document.getElementById("list");
 
-                const div = document.createElement("div");
-                div.innerHTML = `
-                    <h1>${response.product.name}</h1>
-                    <p>Rp ${response.product.price.toLocaleString()}</p>
-                `;
-                app.appendChild(div);
+                list.innerHTML = '';
+
+                response.products.forEach(product => {
+                    const div = document.createElement("div");
+                    div.innerHTML = `
+                            <div>
+                                <h1>${product.name}</h1>
+                                <p>Rp ${product.price.toLocaleString()}</p>
+                            </div>
+                            <button id="btnDelete" data-id="${product.id}" style="margin-top: 1rem; background-color: red;">Delete</button>
+                            `;
+                    list.appendChild(div);
+                });
+
+                // reset form value
+                form.name.value = '';
+                form.price.value = '';
             };
 
             xhttp.open("POST", "http://localhost:3030/products");
             xhttp.send(JSON.stringify({ name, price }));
         };
+
+        // DELETE data Products
+        document.addEventListener('DOMContentLoaded', function () {
+            document.addEventListener('click', function (event) {
+                if (event.target.id === 'btnDelete') {
+                    const xhttp = new XMLHttpRequest();
+
+                    xhttp.onload = function () {
+                        const response = JSON.parse(xhttp.responseText);
+                        const list = document.getElementById("list");
+
+                        list.innerHTML = '';
+
+                        response.products.forEach(product => {
+                            const div = document.createElement("div");
+                            div.innerHTML = `
+                            <div>
+                                <h1>${product.name}</h1>
+                                <p>Rp ${product.price.toLocaleString()}</p>
+                            </div>
+                            <button id="btnDelete" data-id="${product.id}" style="margin-top: 1rem; background-color: red;">Delete</button>
+                            `;
+                            list.appendChild(div);
+                        });
+                    };
+
+                    xhttp.open("DELETE", "http://localhost:3030/products");
+                    xhttp.send(JSON.stringify({ id: event.target.getAttribute('data-id') }));
+                }
+            });
+        }
+        );
     </script>
 </body>
 

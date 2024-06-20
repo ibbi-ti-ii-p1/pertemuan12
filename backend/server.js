@@ -28,10 +28,11 @@ const server = http.createServer((req, res) => {
 
     res.writeHead(200, {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': '*',
     });
 
-    if(parsedUrl.pathname === '/products') {
+    if (parsedUrl.pathname === '/products') {
         if (req.method === 'GET') {
             db.all("SELECT * FROM products", (err, rows) => {
                 if (err) {
@@ -40,7 +41,6 @@ const server = http.createServer((req, res) => {
                         "error": err.message
                     }));
                 } else {
-                    console.log(rows);
                     res.end(JSON.stringify({
                         "products": rows
                     }));
@@ -69,15 +69,56 @@ const server = http.createServer((req, res) => {
                             "error": err.message
                         }));
                     } else {
-                        res.end(JSON.stringify({
-                            "product": product
-                        }));
+                        db.all("SELECT * FROM products", (err, rows) => {
+                            if (err) {
+                                console.error("Error getting products " + err.message);
+                                res.end(JSON.stringify({
+                                    "error": err.message
+                                }));
+                            } else {
+                                res.end(JSON.stringify({
+                                    "products": rows
+                                }));
+                            }
+                        });
                     }
                 });
                 /* res.end(JSON.stringify({
                     "product": product
                 })); */
             });
+        } else if(req.method === 'DELETE') {
+            let body = '';
+            req.on('data', (chunk) => {
+                body += chunk;
+            });
+
+            req.on('end', () => {
+                const product = JSON.parse(body);
+                const id = product.id;
+                
+                db.run("DELETE FROM products WHERE id = ?", [id], (err) => {
+                    if (err) {
+                        console.error("Error deleting product " + err.message);
+                        res.end(JSON.stringify({
+                            "error": err.message
+                        }));
+                    } else {
+                        db.all("SELECT * FROM products", (err, rows) => {
+                            if (err) {
+                                console.error("Error getting products " + err.message);
+                                res.end(JSON.stringify({
+                                    "error": err.message
+                                }));
+                            } else {
+                                res.end(JSON.stringify({
+                                    "products": rows
+                                }));
+                            }
+                        });
+                    }
+                });
+            });                
         } else {
             res.end('Method not allowed');
         }
